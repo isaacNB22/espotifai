@@ -1,18 +1,18 @@
 # espotifai
 
-Clon personal de Spotify conectado a YouTube. Busca canciones, arma tu biblioteca y descarga MP3 directamente a tu servidor.
+Clon personal de Spotify conectado a YouTube. Busca canciones, arma tu biblioteca, descarga MP3 y escucha en streaming directamente desde el servidor.
 
 ---
 
 ## Stack
 
-| Capa          | Tecnología                                       |
-|---------------|--------------------------------------------------|
-| Frontend      | HTML · CSS (shadcn/ui tokens) · Vanilla JS (SPA) |
-| Backend       | Node.js · Express                                |
-| Descarga      | yt-dlp                                           |
-| Búsqueda      | YouTube Data API v3                              |
-| Base de datos | JSON local (`server/data/library.json`)          |
+| Capa            | Tecnología                                       |
+|-----------------|--------------------------------------------------|
+| Frontend        | HTML · CSS (shadcn/ui tokens) · Vanilla JS (SPA) |
+| Backend         | Node.js · Express                                |
+| Descarga/Stream | yt-dlp                                           |
+| Búsqueda        | YouTube Data API v3                              |
+| Base de datos   | JSON local (`server/data/library.json`)          |
 
 ---
 
@@ -21,20 +21,38 @@ Clon personal de Spotify conectado a YouTube. Busca canciones, arma tu bibliotec
 ```
 espotifai/
 ├── index.html
+├── .gitignore
 ├── css/
-│   └── styles.css
+│   ├── base.css
+│   ├── components.css
+│   ├── layout.css
+│   ├── player.css
+│   ├── profile.css
+│   └── utils.css
 ├── js/
 │   ├── app.js        ← navegación SPA, toasts, importar URL
-│   ├── search.js     ← vista búsqueda + grid de resultados
-│   └── library.js    ← vista biblioteca + descarga con polling
+│   ├── import.js     ← importar canciones por URL
+│   ├── library.js    ← vista biblioteca + descarga con polling
+│   ├── player.js     ← reproductor de audio
+│   └── search.js     ← vista búsqueda + grid de resultados
+├── views/
+│   ├── import/
+│   ├── library/
+│   ├── search/
+│   └── stats/
 └── server/
     ├── index.js      ← servidor Express
     ├── db.js         ← base de datos JSON
-    ├── .env          ← variables de entorno (no commitear)
+    ├── quota.js      ← control de cuota de API
+    ├── .env          ← variables de entorno (no subir al repo)
+    ├── .env.example  ← plantilla de variables de entorno
+    ├── data/         ← biblioteca y cuotas (generado, no subir)
+    ├── downloads/    ← archivos de audio descargados (no subir)
     └── routes/
         ├── search.js    GET  /api/search?q=
         ├── library.js   GET|POST|DELETE /api/library
-        └── download.js  POST /api/download + estado + archivo
+        ├── download.js  POST /api/download + estado + archivo
+        └── stream.js    GET  /api/stream/:videoId
 ```
 
 ---
@@ -74,13 +92,15 @@ npm install
 cp .env.example .env
 ```
 
-Editar `server/.env` y poner la API Key:
+Editar `server/.env` y completar los valores:
 
 ```env
 YOUTUBE_API_KEY=TU_API_KEY_AQUI
 PORT=3000
 DOWNLOADS_DIR=./downloads
 ```
+
+> `server/.env` está en `.gitignore` y nunca se sube al repositorio.
 
 ---
 
@@ -97,30 +117,32 @@ Abrir en el navegador: **http://localhost:3000**
 
 ## API Reference
 
-| Método   | Ruta                                | Descripción                                           |
-|----------|-------------------------------------|-------------------------------------------------------|
-| `GET`    | `/api/ping`                         | Health check                                          |
-| `GET`    | `/api/search?q=query&maxResults=12` | Buscar videos en YouTube                              |
-| `GET`    | `/api/library`                      | Listar biblioteca                                     |
-| `POST`   | `/api/library`                      | Agregar track `{ videoId, title, author, thumbnail }` |
-| `DELETE` | `/api/library/:videoId`             | Eliminar track                                        |
-| `POST`   | `/api/download`                     | Iniciar descarga `{ videoId, format }` → `{ jobId }`  |
-| `GET`    | `/api/download/status/:jobId`       | Estado y progreso de descarga                         |
-| `GET`    | `/api/download/file/:videoId`       | Descargar el archivo guardado                         |
+| Método   | Ruta                                | Descripción                                             |
+|----------|-------------------------------------|---------------------------------------------------------|
+| `GET`    | `/api/ping`                         | Health check                                            |
+| `GET`    | `/api/search?q=query&maxResults=12` | Buscar videos en YouTube                                |
+| `GET`    | `/api/library`                      | Listar biblioteca                                       |
+| `POST`   | `/api/library`                      | Agregar track `{ videoId, title, author, thumbnail }`   |
+| `DELETE` | `/api/library/:videoId`             | Eliminar track                                          |
+| `POST`   | `/api/download`                     | Iniciar descarga `{ videoId, format }` → `{ jobId }`    |
+| `GET`    | `/api/download/status/:jobId`       | Estado y progreso de descarga                           |
+| `GET`    | `/api/download/file/:videoId`       | Descargar el archivo guardado                           |
+| `GET`    | `/api/stream/:videoId`              | Stream de audio (local si está descargado, proxy si no) |
 
 ---
 
 ## Flujo de uso
 
 ```
-Buscar → agregar a biblioteca → descargar MP3 → guardar en /server/downloads/
+Buscar → agregar a biblioteca → reproducir / descargar MP3
 ```
 
 1. **Buscar** — escribe un artista o canción, aparece el grid de resultados
 2. **Agregar** — click en *Agregar* → el track se guarda en la biblioteca
-3. **Descargar** — en *Biblioteca*, click en el ícono de descarga → yt-dlp procesa el audio
-4. **Guardar** — cuando el estado cambia a *Descargado*, click en guardar para obtener el MP3
-5. **Importar URL** — pega un enlace directo de YouTube para agregar sin buscar
+3. **Reproducir** — el reproductor hace streaming desde el servidor (no requiere descarga previa)
+4. **Descargar** — en *Biblioteca*, click en el ícono de descarga → yt-dlp procesa el audio en background
+5. **Guardar** — cuando el estado cambia a *Descargado*, click en guardar para obtener el MP3
+6. **Importar URL** — pega un enlace directo de YouTube para agregar sin buscar
 
 ---
 
@@ -135,8 +157,10 @@ npm run dev    # desarrollo con --watch (auto-reload)
 
 ## Variables de entorno
 
-| Variable          | Requerida | Default       | Descripción                     |
-|-------------------|-----------|---------------|---------------------------------|
-| `YOUTUBE_API_KEY` | ✅         | —             | Clave de YouTube Data API v3    |
-| `PORT`            | ❌         | `3000`        | Puerto del servidor             |
-| `DOWNLOADS_DIR`   | ❌         | `./downloads` | Carpeta de archivos descargados |
+| Variable          | Requerida | Default       | Descripción                          |
+|-------------------|-----------|---------------|--------------------------------------|
+| `YOUTUBE_API_KEY` | ✅         | —             | Clave de YouTube Data API v3         |
+| `PORT`            | ❌         | `3000`        | Puerto del servidor                  |
+| `DOWNLOADS_DIR`   | ❌         | `./downloads` | Carpeta donde se guardan los MP3/MP4 |
+
+---
