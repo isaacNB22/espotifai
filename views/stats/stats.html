@@ -1,0 +1,39 @@
+<section aria-label="Estadisticas">
+  <p class="page-subtitle">Uso de la API de YouTube y actividad de la aplicación.</p>
+
+  <div style="max-width: 480px; display: flex; flex-direction: column; gap: 16px">
+    <div class="quota-card">
+      <p class="quota-card__label">Cuota de API hoy</p>
+      <div class="quota-bar-wrap" style="height: 10px; margin-bottom: 14px">
+        <div class="quota-bar-fill" id="statsQuotaBar" style="width: 0%"></div>
+      </div>
+      <div class="quota-stats" style="font-size: 15px">
+        <span
+          ><strong id="statsUsed">–</strong>
+          <span style="color: var(--muted); font-size: 12px">usadas</span></span
+        >
+        <span
+          ><strong id="statsRemaining">–</strong>
+          <span style="color: var(--muted); font-size: 12px">/ 10,000</span></span
+        >
+      </div>
+      <p class="quota-reset" id="statsReset"></p>
+    </div>
+
+    <div class="quota-card">
+      <p class="quota-card__label">Búsquedas disponibles hoy</p>
+      <div class="quota-stats">
+        <span><strong id="statsSearches">–</strong> búsquedas aprox.</span>
+        <span id="statsPercent" style="color: var(--muted)">0%</span>
+      </div>
+    </div>
+
+    <div class="quota-card">
+      <p class="quota-card__label">Biblioteca</p>
+      <div class="quota-stats">
+        <span>Total de pistas: <strong id="statsTracks">–</strong></span>
+        <span>Descargadas: <strong id="statsDownloaded">–</strong></span>
+      </div>
+    </div>
+  </div>
+</section>

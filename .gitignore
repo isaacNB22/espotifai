@@ -1,0 +1,18 @@
+# Variables de entorno (contienen API keys y secretos)
+server/.env
+
+# Datos generados en tiempo de ejecución
+server/data/
+server/downloads/
+
+# Dependencias de Node.js
+node_modules/
+server/node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema operativo
+.DS_Store
+Thumbs.db

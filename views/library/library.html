@@ -1,0 +1,44 @@
+<section aria-label="Mi Biblioteca">
+  <div class="lib-header">
+    <p class="page-subtitle" style="margin: 0">
+      Tus canciones descargadas y en proceso de descarga.
+    </p>
+    <div class="lib-header__controls">
+      <input
+        id="libSearch"
+        class="input input--sm"
+        placeholder="Buscar en biblioteca…"
+        style="max-width: 260px"
+      />
+      <button id="refreshLibBtn" class="btn btn--outline btn--sm">
+        <svg
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <polyline points="23 4 23 10 17 10" />
+          <polyline points="1 20 1 14 7 14" />
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+        </svg>
+        Actualizar
+      </button>
+    </div>
+  </div>
+
+  <div class="lib-cols" aria-hidden="true">
+    <span>#</span>
+    <span></span>
+    <span class="lib-sort-col" data-sort="title" style="cursor: pointer"
+      >TÍTULO <span class="sort-arrow"></span
+    ></span>
+    <span class="lib-sort-col" data-sort="duration" style="cursor: pointer; text-align: right"
+      >DURACIÓN <span class="sort-arrow"></span
+    ></span>
+    <span style="text-align: right">ACCIONES</span>
+  </div>
+
+  <div id="libraryList" class="library-list" role="list" aria-label="Lista de canciones"></div>
+</section>
