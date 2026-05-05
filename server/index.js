@@ -20,6 +20,14 @@ import searchRouter from './routes/search.js';
 import libraryRouter from './routes/library.js';
 import downloadRouter from './routes/download.js';
 import streamRouter from './routes/stream.js';
+import { getQuotaStatus } from './quota.js';
+import { getLibrary } from './db.js';
+
+// Evitar que errores EPIPE (cliente desconectado durante streaming) tiren el servidor
+process.on('uncaughtException', (err) => {
+  if (err.code === 'EPIPE') return; // ignorar silenciosamente
+  console.error('[uncaughtException]', err);
+});
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 3000);
@@ -51,6 +59,17 @@ app.use('/api/stream', streamRouter);
 
 // Health check
 app.get('/api/ping', (_req, res) => res.json({ ok: true, version: '1.0.0' }));
+
+// Stats
+app.get('/api/stats', (_req, res) => {
+  const library = getLibrary();
+  const quota = getQuotaStatus();
+  res.json({
+    totalSongs: library.length,
+    downloaded: library.filter((s) => s.downloadStatus === 'done').length,
+    quota,
+  });
+});
 
 app.listen(PORT, () => {
   console.log(`

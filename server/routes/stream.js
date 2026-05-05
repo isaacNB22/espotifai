@@ -87,6 +87,12 @@ router.get('/:videoId', (req, res) => {
     '-f',
     'bestaudio[ext=m4a]/bestaudio/best',
     '--no-check-formats',
+    // Mitigar rate limiting de YouTube
+    '--extractor-args',
+    'youtube:player_client=ios,web',
+    '--sleep-requests',
+    '1',
+    '--no-check-certificates',
     '-o',
     '-',
     '--quiet',
@@ -112,6 +118,11 @@ router.get('/:videoId', (req, res) => {
 
   ytProc.stdout.pipe(ffProc.stdin);
   ffProc.stdout.pipe(res);
+
+  // Evitar que EPIPE (cliente desconectado) tire el proceso
+  res.socket?.on('error', () => cleanup());
+  ffProc.stdin.on('error', () => {}); // yt-dlp cerró antes que ffmpeg
+  ffProc.stdout.on('error', () => {}); // cliente cerró la conexión
 
   ytProc.stderr.on('data', (d) => {
     const msg = d.toString().trim();

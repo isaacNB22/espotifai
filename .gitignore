@@ -16,3 +16,42 @@ npm-debug.log*
 # Sistema operativo
 .DS_Store
 Thumbs.db
+
+# Flutter — plataformas no usadas (solo Windows)
+app/ios/
+app/android/
+
+# Flutter — archivos generados de Windows (se regeneran con flutter pub get)
+app/windows/flutter/generated_plugin_registrant.cc
+app/windows/flutter/generated_plugin_registrant.h
+app/windows/flutter/generated_plugins.cmake
+app/windows/flutter/ephemeral/
+app/windows/flutter/CMakeLists.txt
+
+# Flutter — boilerplate del runner de Windows (generado por Flutter)
+app/windows/runner/flutter_window.cpp
+app/windows/runner/flutter_window.h
+app/windows/runner/main.cpp
+app/windows/runner/resource.h
+app/windows/runner/runner.exe.manifest
+app/windows/runner/Runner.rc
+app/windows/runner/utils.cpp
+app/windows/runner/utils.h
+app/windows/runner/win32_window.cpp
+app/windows/runner/win32_window.h
+app/windows/runner/resources/
+
+# Flutter — metadatos y caché
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/.dart_tool/
+app/.metadata
+app/README.md
+app/analysis_options.yaml
+
+# Archivos temporales del servidor (fragmentos de yt-dlp/ffmpeg)
+server/--Frag*
+server/*.part
+server/*.tmp
+
+roadmap.md
