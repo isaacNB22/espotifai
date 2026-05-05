@@ -594,57 +594,93 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
   }
 }
 
-class _QueuePanel extends StatelessWidget {
+class _QueuePanel extends StatefulWidget {
   final PlayerService player;
   const _QueuePanel({required this.player});
   @override
+  State<_QueuePanel> createState() => _QueuePanelState();
+}
+
+class _QueuePanelState extends State<_QueuePanel> {
+  @override
   Widget build(BuildContext context) {
-    final queue = player.queue;
-    final current = player.queueIndex;
-    final upcoming = queue.skip(current + 1).toList();
-    if (upcoming.isEmpty)
+    final p = widget.player;
+    final queue = p.queue;
+    final current = p.queueIndex;
+    if (queue.isEmpty) {
       return const Center(
         child: Text(
-          'No hay canciones a continuación.',
+          'Cola vacía.',
           style: TextStyle(color: Colors.white54, fontSize: 13),
         ),
       );
-    return ListView.builder(
+    }
+
+    return ReorderableListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: upcoming.length,
+      itemCount: queue.length,
+      onReorder: (oldIdx, newIdx) {
+        setState(() => p.reorderQueue(oldIdx, newIdx));
+      },
+      proxyDecorator:
+          (child, _, __) => Material(color: Colors.transparent, child: child),
       itemBuilder: (ctx, i) {
-        final song = upcoming[i];
+        final song = queue[i];
+        final isCurrent = i == current;
         return ListTile(
+          key: ValueKey(song.videoId + i.toString()),
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
+            horizontal: 8,
             vertical: 2,
           ),
-          leading: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: CachedNetworkImage(
-              imageUrl: song.thumbnail,
-              width: 40,
-              height: 40,
-              fit: BoxFit.cover,
-              errorWidget:
-                  (_, __, ___) => Container(
-                    width: 40,
-                    height: 40,
-                    color: Colors.white12,
+          leading: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: CachedNetworkImage(
+                  imageUrl: song.thumbnail,
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.cover,
+                  errorWidget:
+                      (_, __, ___) => Container(
+                        width: 40,
+                        height: 40,
+                        color: Colors.white12,
+                        child: const Icon(
+                          Icons.music_note,
+                          size: 16,
+                          color: Colors.white38,
+                        ),
+                      ),
+                ),
+              ),
+              if (isCurrent)
+                Positioned(
+                  right: -4,
+                  bottom: -4,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF1DB954),
+                      shape: BoxShape.circle,
+                    ),
                     child: const Icon(
-                      Icons.music_note,
-                      size: 16,
-                      color: Colors.white38,
+                      Icons.equalizer_rounded,
+                      size: 10,
+                      color: Colors.black,
                     ),
                   ),
-            ),
+                ),
+            ],
           ),
           title: Text(
             song.title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: isCurrent ? const Color(0xFF1DB954) : Colors.white,
               fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
@@ -653,9 +689,23 @@ class _QueuePanel extends StatelessWidget {
             song.artist,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white54, fontSize: 12),
+            style: TextStyle(
+              color:
+                  isCurrent
+                      ? const Color(0xFF1DB954).withAlpha(180)
+                      : Colors.white54,
+              fontSize: 12,
+            ),
           ),
-          onTap: () => player.playQueue(queue, startIndex: current + 1 + i),
+          onTap: isCurrent ? null : () => p.jumpToIndex(i),
+          trailing: ReorderableDragStartListener(
+            index: i,
+            child: const Icon(
+              Icons.drag_handle_rounded,
+              color: Colors.white38,
+              size: 20,
+            ),
+          ),
         );
       },
     );

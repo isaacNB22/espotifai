@@ -298,6 +298,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                             )
                             .toList(),
                     onAddToPlaylist: (s, p) => widget.onAddToPlaylist(s, p),
+                    onAddToQueue: () => widget.player.addToQueue(song),
+                    onPlayAsNext: () => widget.player.playAsNext(song),
                   );
                 }, childCount: songs.length),
               ),
@@ -324,6 +326,8 @@ class _SongRow extends StatelessWidget {
   final VoidCallback? onDownload;
   final List<Playlist> playlists;
   final void Function(Song, Playlist) onAddToPlaylist;
+  final VoidCallback? onAddToQueue;
+  final VoidCallback? onPlayAsNext;
 
   const _SongRow({
     required this.index,
@@ -340,6 +344,8 @@ class _SongRow extends StatelessWidget {
     this.onDownload,
     required this.playlists,
     required this.onAddToPlaylist,
+    this.onAddToQueue,
+    this.onPlayAsNext,
   });
 
   @override
@@ -479,9 +485,32 @@ class _SongRow extends StatelessWidget {
                     if (v == 'remove') onRemove();
                     if (v == 'remove_playlist') onRemoveFromPlaylist?.call();
                     if (v == 'download') onDownload?.call();
+                    if (v == 'next') onPlayAsNext?.call();
+                    if (v == 'queue') onAddToQueue?.call();
                   },
                   itemBuilder:
                       (_) => [
+                        const PopupMenuItem(
+                          value: 'next',
+                          child: Row(
+                            children: [
+                              Icon(Icons.queue_play_next_rounded, size: 18),
+                              SizedBox(width: 8),
+                              Text('Reproducir siguiente'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'queue',
+                          child: Row(
+                            children: [
+                              Icon(Icons.add_to_queue_rounded, size: 18),
+                              SizedBox(width: 8),
+                              Text('Agregar a la cola'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuDivider(),
                         if (onDownload != null)
                           const PopupMenuItem(
                             value: 'download',

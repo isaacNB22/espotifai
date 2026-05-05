@@ -20,9 +20,33 @@ class PlayerService {
   Song? currentSong;
   PlayerStatus status = PlayerStatus.idle;
 
-  List<Song> _queue = [];
+  List<Song> _queue = []; // cola actual (barajada si shuffle está activo)
+  List<Song> _originalQueue = []; // cola en orden original
   int _queueIndex = -1;
-  bool shuffle = false;
+  bool _shuffle = false;
+  bool get shuffle => _shuffle;
+  set shuffle(bool value) {
+    _shuffle = value;
+    if (value) {
+      _originalQueue = List.of(_queue);
+      final current = _queueIndex >= 0 ? _queue[_queueIndex] : null;
+      _queue.shuffle();
+      if (current != null) {
+        _queue.remove(current);
+        _queue.insert(0, current);
+        _queueIndex = 0;
+      }
+    } else {
+      final current = _queueIndex >= 0 ? _queue[_queueIndex] : null;
+      _queue = List.of(_originalQueue);
+      if (current != null) {
+        _queueIndex = _queue.indexWhere((s) => s.videoId == current.videoId);
+        if (_queueIndex == -1) _queueIndex = 0;
+      }
+    }
+    _notify();
+  }
+
   bool repeat = false;
 
   // Speed
@@ -199,9 +223,57 @@ class PlayerService {
   int get queueIndex => _queueIndex;
 
   Future<void> playQueue(List<Song> songs, {int startIndex = 0}) async {
+    _originalQueue = List.of(songs);
     _queue = List.of(songs);
     _queueIndex = startIndex;
+    if (_shuffle) {
+      final current = _queue[_queueIndex];
+      _queue.shuffle();
+      _queue.remove(current);
+      _queue.insert(0, current);
+      _queueIndex = 0;
+    }
     await _loadAndPlay(_queue[_queueIndex]);
+  }
+
+  /// Salta al índice dado en la cola actual sin reordenarla.
+  Future<void> jumpToIndex(int index) async {
+    if (index < 0 || index >= _queue.length) return;
+    _queueIndex = index;
+    await _loadAndPlay(_queue[_queueIndex]);
+  }
+
+  /// Agrega una canción al final de la cola.
+  void addToQueue(Song song) {
+    _queue.add(song);
+    _originalQueue.add(song);
+    _notify();
+  }
+
+  /// Inserta una canción como la siguiente en la cola.
+  void playAsNext(Song song) {
+    final insertIdx = _queueIndex + 1;
+    _queue.insert(insertIdx.clamp(0, _queue.length), song);
+    _originalQueue.insert(insertIdx.clamp(0, _originalQueue.length), song);
+    _notify();
+  }
+
+  /// Reordena la cola (drag & drop). oldIndex y newIndex son posiciones absolutas.
+  void reorderQueue(int oldIndex, int newIndex) {
+    if (oldIndex == newIndex) return;
+    final song = _queue.removeAt(oldIndex);
+    final adjustedNew = oldIndex < newIndex ? newIndex - 1 : newIndex;
+    _queue.insert(adjustedNew, song);
+    // Actualizar queueIndex si la canción actual se movió
+    if (oldIndex == _queueIndex) {
+      _queueIndex = adjustedNew;
+    } else if (oldIndex < _queueIndex && adjustedNew >= _queueIndex) {
+      _queueIndex--;
+    } else if (oldIndex > _queueIndex && adjustedNew <= _queueIndex) {
+      _queueIndex++;
+    }
+    _originalQueue = List.of(_queue);
+    _notify();
   }
 
   Future<void> play(Song song) async {
@@ -214,6 +286,7 @@ class PlayerService {
       _queueIndex = idx;
     } else {
       _queue = [song];
+      _originalQueue = [song];
       _queueIndex = 0;
     }
     await _loadAndPlay(song);
@@ -221,10 +294,7 @@ class PlayerService {
 
   Future<void> playNext() async {
     if (_queue.isEmpty) return;
-    _queueIndex =
-        shuffle
-            ? Random().nextInt(_queue.length)
-            : (_queueIndex + 1) % _queue.length;
+    _queueIndex = (_queueIndex + 1) % _queue.length;
     await _loadAndPlay(_queue[_queueIndex]);
   }
 
@@ -245,15 +315,16 @@ class PlayerService {
       _notify();
       return;
     }
-    if (shuffle) {
-      _queueIndex = Random().nextInt(_queue.length);
-    } else {
-      if (_queueIndex >= _queue.length - 1) {
+    if (_queueIndex >= _queue.length - 1) {
+      if (repeat) {
+        _queueIndex = 0;
+      } else {
         status = PlayerStatus.idle;
         currentSong = null;
         _notify();
         return;
       }
+    } else {
       _queueIndex++;
     }
     await _loadAndPlay(_queue[_queueIndex]);

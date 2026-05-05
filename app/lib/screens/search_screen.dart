@@ -144,6 +144,8 @@ class _SearchScreenState extends State<SearchScreen> {
                         showAddButton: true,
                         playlists: widget.playlists,
                         onAddToPlaylist: widget.onAddToPlaylist,
+                        onAddToQueue: () => widget.player.addToQueue(song),
+                        onPlayAsNext: () => widget.player.playAsNext(song),
                       );
                     },
                   ),

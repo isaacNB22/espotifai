@@ -14,6 +14,8 @@ class SongCard extends StatelessWidget {
   final bool isPlaying;
   final List<Playlist>? playlists;
   final void Function(Song, Playlist)? onAddToPlaylist;
+  final VoidCallback? onAddToQueue;
+  final VoidCallback? onPlayAsNext;
 
   const SongCard({
     super.key,
@@ -27,6 +29,8 @@ class SongCard extends StatelessWidget {
     this.isPlaying = false,
     this.playlists,
     this.onAddToPlaylist,
+    this.onAddToQueue,
+    this.onPlayAsNext,
   });
 
   @override
@@ -141,9 +145,8 @@ class SongCard extends StatelessWidget {
                 tooltip: 'Eliminar',
                 onTap: onDelete!,
               ),
-            // Menú "Agregar a playlist"
             if (onAddToPlaylist != null)
-              PopupMenuButton<Playlist?>(
+              PopupMenuButton<Object?>(
                 icon: const Icon(Icons.more_vert_rounded, size: 20),
                 tooltip: 'Más opciones',
                 padding: EdgeInsets.zero,
@@ -151,7 +154,32 @@ class SongCard extends StatelessWidget {
                   final userPlaylists =
                       playlists?.where((p) => !p.isAuto).toList() ?? [];
                   return [
-                    const PopupMenuItem<Playlist?>(
+                    if (onPlayAsNext != null)
+                      PopupMenuItem<Object?>(
+                        value: 'next',
+                        child: const Row(
+                          children: [
+                            Icon(Icons.queue_play_next_rounded, size: 18),
+                            SizedBox(width: 10),
+                            Text('Reproducir siguiente'),
+                          ],
+                        ),
+                      ),
+                    if (onAddToQueue != null)
+                      PopupMenuItem<Object?>(
+                        value: 'queue',
+                        child: const Row(
+                          children: [
+                            Icon(Icons.add_to_queue_rounded, size: 18),
+                            SizedBox(width: 10),
+                            Text('Agregar a la cola'),
+                          ],
+                        ),
+                      ),
+                    if ((onPlayAsNext != null || onAddToQueue != null) &&
+                        userPlaylists.isNotEmpty)
+                      const PopupMenuDivider(),
+                    const PopupMenuItem<Object?>(
                       enabled: false,
                       height: 32,
                       child: Text(
@@ -163,7 +191,7 @@ class SongCard extends StatelessWidget {
                       ),
                     ),
                     if (userPlaylists.isEmpty)
-                      const PopupMenuItem<Playlist?>(
+                      const PopupMenuItem<Object?>(
                         enabled: false,
                         height: 36,
                         child: Text(
@@ -176,7 +204,7 @@ class SongCard extends StatelessWidget {
                       )
                     else
                       ...userPlaylists.map(
-                        (p) => PopupMenuItem<Playlist?>(
+                        (p) => PopupMenuItem<Object?>(
                           value: p,
                           child: Row(
                             children: [
@@ -189,8 +217,13 @@ class SongCard extends StatelessWidget {
                       ),
                   ];
                 },
-                onSelected: (p) {
-                  if (p != null) onAddToPlaylist!(song, p);
+                onSelected: (val) {
+                  if (val == 'next')
+                    onPlayAsNext?.call();
+                  else if (val == 'queue')
+                    onAddToQueue?.call();
+                  else if (val is Playlist)
+                    onAddToPlaylist!(song, val);
                 },
               ),
             _ActionBtn(
