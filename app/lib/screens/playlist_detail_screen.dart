@@ -1,8 +1,8 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../models/playlist.dart';
 import '../models/song.dart';
 import '../services/player_service.dart';
+import 'playlist_detail/widgets/song_row.dart';
 
 class PlaylistDetailScreen extends StatefulWidget {
   final Playlist playlist;
@@ -84,10 +84,10 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     final diff = DateTime.now().difference(dt);
     if (diff.inDays == 0) return 'hoy';
     if (diff.inDays == 1) return 'ayer';
-    if (diff.inDays < 7) return 'hace ${diff.inDays} días';
+    if (diff.inDays < 7) return 'hace ${diff.inDays} dias';
     if (diff.inDays < 30) return 'hace ${diff.inDays ~/ 7} semanas';
     if (diff.inDays < 365) return 'hace ${diff.inDays ~/ 30} meses';
-    return 'hace ${diff.inDays ~/ 365} años';
+    return 'hace ${diff.inDays ~/ 365} anos';
   }
 
   @override
@@ -102,7 +102,6 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       backgroundColor: bg,
       body: CustomScrollView(
         slivers: [
-          // ── Header ──────────────────────────────────────────────────────
           SliverAppBar(
             expandedHeight: 260,
             pinned: true,
@@ -130,7 +129,6 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          // Art
                           Container(
                             width: 120,
                             height: 120,
@@ -152,7 +150,6 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                             ),
                           ),
                           const SizedBox(width: 20),
-                          // Info
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -179,7 +176,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  '${songs.length} ${songs.length == 1 ? 'canción' : 'canciones'}',
+                                  '${songs.length} ${songs.length == 1 ? "cancion" : "canciones"}',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.white.withAlpha(160),
@@ -197,7 +194,6 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
             ),
           ),
 
-          // ── Controls bar (solo botón play funcional) ─────────────────────
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
@@ -230,7 +226,6 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
             ),
           ),
 
-          // ── Divider ──────────────────────────────────────────────────────
           SliverToBoxAdapter(
             child: Divider(
               height: 1,
@@ -240,7 +235,6 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
             ),
           ),
 
-          // ── Song list ────────────────────────────────────────────────────
           songs.isEmpty
               ? SliverToBoxAdapter(
                 child: Padding(
@@ -255,7 +249,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'Esta playlist está vacía',
+                          'Esta playlist esta vacia',
                           style: TextStyle(
                             color: dark ? Colors.white38 : Colors.black38,
                           ),
@@ -271,7 +265,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                   final isPlaying = song.videoId == currentId;
                   final isCurrentlyPlaying =
                       isPlaying && widget.player.isPlaying;
-                  return _SongRow(
+                  return SongRow(
                     index: i + 1,
                     song: song,
                     isPlaying: isPlaying,
@@ -303,314 +297,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                   );
                 }, childCount: songs.length),
               ),
+
           const SliverToBoxAdapter(child: SizedBox(height: 16)),
-        ],
-      ),
-    );
-  }
-}
-
-class _SongRow extends StatelessWidget {
-  final int index;
-  final Song song;
-  final bool isPlaying;
-  final bool isCurrentlyPlaying;
-  final String dateAdded;
-  final String duration;
-  final bool dark;
-  final double?
-  downloadProgress; // null = no descargando, 0..1 = progreso, 1.0 = done
-  final VoidCallback onPlay;
-  final VoidCallback onRemove;
-  final VoidCallback? onRemoveFromPlaylist;
-  final VoidCallback? onDownload;
-  final List<Playlist> playlists;
-  final void Function(Song, Playlist) onAddToPlaylist;
-  final VoidCallback? onAddToQueue;
-  final VoidCallback? onPlayAsNext;
-
-  const _SongRow({
-    required this.index,
-    required this.song,
-    required this.isPlaying,
-    required this.isCurrentlyPlaying,
-    required this.dateAdded,
-    required this.duration,
-    required this.dark,
-    this.downloadProgress,
-    required this.onPlay,
-    required this.onRemove,
-    this.onRemoveFromPlaylist,
-    this.onDownload,
-    required this.playlists,
-    required this.onAddToPlaylist,
-    this.onAddToQueue,
-    this.onPlayAsNext,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    const green = Color(0xFF1DB954);
-    final textColor =
-        isPlaying ? green : (dark ? Colors.white : Colors.black87);
-    final subColor = dark ? Colors.white54 : Colors.black45;
-    final isDownloading = downloadProgress != null && downloadProgress! < 1.0;
-    final isDone = downloadProgress != null && downloadProgress! >= 1.0;
-
-    return InkWell(
-      onTap: onPlay,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-            child: Row(
-              children: [
-                // Index / equalizer
-                SizedBox(
-                  width: 24,
-                  child:
-                      isCurrentlyPlaying
-                          ? const Icon(
-                            Icons.equalizer_rounded,
-                            color: green,
-                            size: 16,
-                          )
-                          : Text(
-                            '$index',
-                            textAlign: TextAlign.right,
-                            style: TextStyle(fontSize: 13, color: subColor),
-                          ),
-                ),
-                const SizedBox(width: 12),
-                // Thumbnail
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: CachedNetworkImage(
-                    imageUrl: song.thumbnail,
-                    width: 40,
-                    height: 40,
-                    fit: BoxFit.cover,
-                    placeholder:
-                        (_, __) => Container(
-                          width: 40,
-                          height: 40,
-                          color:
-                              dark
-                                  ? const Color(0xFF333333)
-                                  : const Color(0xFFDDDDDD),
-                        ),
-                    errorWidget:
-                        (_, __, ___) => Container(
-                          width: 40,
-                          height: 40,
-                          color:
-                              dark
-                                  ? const Color(0xFF333333)
-                                  : const Color(0xFFDDDDDD),
-                          child: Icon(
-                            Icons.music_note,
-                            size: 16,
-                            color: subColor,
-                          ),
-                        ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // Title + artist
-                Expanded(
-                  flex: 4,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        song.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: textColor,
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          if (!song.downloaded)
-                            Padding(
-                              padding: const EdgeInsets.only(right: 4),
-                              child: Icon(
-                                Icons.download_for_offline_outlined,
-                                size: 12,
-                                color: subColor,
-                              ),
-                            ),
-                          Expanded(
-                            child: Text(
-                              song.artist,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 12, color: subColor),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                // Date added
-                Expanded(
-                  flex: 2,
-                  child: Text(
-                    dateAdded,
-                    style: TextStyle(fontSize: 12, color: subColor),
-                  ),
-                ),
-                // Duration
-                SizedBox(
-                  width: 36,
-                  child: Text(
-                    duration,
-                    textAlign: TextAlign.right,
-                    style: TextStyle(fontSize: 12, color: subColor),
-                  ),
-                ),
-                // Menu
-                PopupMenuButton<String>(
-                  icon: Icon(
-                    Icons.more_horiz_rounded,
-                    size: 18,
-                    color: subColor,
-                  ),
-                  onSelected: (v) {
-                    if (v == 'remove') onRemove();
-                    if (v == 'remove_playlist') onRemoveFromPlaylist?.call();
-                    if (v == 'download') onDownload?.call();
-                    if (v == 'next') onPlayAsNext?.call();
-                    if (v == 'queue') onAddToQueue?.call();
-                  },
-                  itemBuilder:
-                      (_) => [
-                        const PopupMenuItem(
-                          value: 'next',
-                          child: Row(
-                            children: [
-                              Icon(Icons.queue_play_next_rounded, size: 18),
-                              SizedBox(width: 8),
-                              Text('Reproducir siguiente'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'queue',
-                          child: Row(
-                            children: [
-                              Icon(Icons.add_to_queue_rounded, size: 18),
-                              SizedBox(width: 8),
-                              Text('Agregar a la cola'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuDivider(),
-                        if (onDownload != null)
-                          const PopupMenuItem(
-                            value: 'download',
-                            child: Row(
-                              children: [
-                                Icon(Icons.download_rounded, size: 18),
-                                SizedBox(width: 8),
-                                Text('Descargar'),
-                              ],
-                            ),
-                          ),
-                        if (onRemoveFromPlaylist != null)
-                          const PopupMenuItem(
-                            value: 'remove_playlist',
-                            child: Row(
-                              children: [
-                                Icon(Icons.playlist_remove_rounded, size: 18),
-                                SizedBox(width: 8),
-                                Text('Quitar de la playlist'),
-                              ],
-                            ),
-                          ),
-                        const PopupMenuItem(
-                          value: 'remove',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete_outline_rounded, size: 18),
-                              SizedBox(width: 8),
-                              Text('Eliminar de biblioteca'),
-                            ],
-                          ),
-                        ),
-                      ],
-                ),
-                // Submenú agregar a otra playlist
-                if (playlists.isNotEmpty)
-                  PopupMenuButton<Playlist>(
-                    icon: Icon(
-                      Icons.playlist_add_rounded,
-                      size: 18,
-                      color: subColor,
-                    ),
-                    tooltip: 'Agregar a playlist',
-                    itemBuilder:
-                        (_) =>
-                            playlists
-                                .map(
-                                  (p) => PopupMenuItem<Playlist>(
-                                    value: p,
-                                    child: Row(
-                                      children: [
-                                        Icon(p.icon, size: 16, color: p.color),
-                                        const SizedBox(width: 8),
-                                        Text(p.name),
-                                      ],
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                    onSelected: (p) => onAddToPlaylist(song, p),
-                  ),
-              ],
-            ),
-          ),
-          // Barra de progreso de descarga
-          if (isDownloading || isDone)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(56, 0, 20, 4),
-              child:
-                  isDone
-                      ? Row(
-                        children: [
-                          const Icon(
-                            Icons.check_circle_rounded,
-                            color: Color(0xFF1DB954),
-                            size: 14,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            'Descargado',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: const Color(0xFF1DB954),
-                            ),
-                          ),
-                        ],
-                      )
-                      : ClipRRect(
-                        borderRadius: BorderRadius.circular(2),
-                        child: LinearProgressIndicator(
-                          value: downloadProgress,
-                          minHeight: 3,
-                          backgroundColor:
-                              dark ? Colors.white12 : Colors.black12,
-                          valueColor: const AlwaysStoppedAnimation(
-                            Color(0xFF1DB954),
-                          ),
-                        ),
-                      ),
-            ),
         ],
       ),
     );

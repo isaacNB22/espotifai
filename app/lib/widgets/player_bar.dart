@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../screens/now_playing_screen.dart';
+import '../screens/now_playing/now_playing_screen.dart';
 import '../services/player_service.dart';
 
 class PlayerBar extends StatefulWidget {
