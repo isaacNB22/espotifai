@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 class Playlist {
   final String id;
   final String name;
-  final List<String> videoIds; // vacío = auto-playlist
+  final List<String> videoIds;
   final Color color;
   final IconData icon;
-  final bool isAuto; // true = generada automáticamente
+  final bool isAuto;
 
   const Playlist({
     required this.id,
@@ -32,4 +32,24 @@ class Playlist {
       isAuto: isAuto,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'videoIds': videoIds,
+    'color': color.value,
+    'icon': icon.codePoint,
+    'iconFamily': icon.fontFamily ?? 'MaterialIcons',
+  };
+
+  factory Playlist.fromJson(Map<String, dynamic> json) => Playlist(
+    id: json['id'] as String,
+    name: json['name'] as String,
+    videoIds: List<String>.from(json['videoIds'] as List),
+    color: Color(json['color'] as int),
+    icon: IconData(
+      json['icon'] as int,
+      fontFamily: json['iconFamily'] as String? ?? 'MaterialIcons',
+    ),
+  );
 }

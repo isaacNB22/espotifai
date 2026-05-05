@@ -9,6 +9,7 @@ import 'screens/search_screen.dart';
 import 'screens/stats_screen.dart';
 import 'services/api_service.dart';
 import 'services/player_service.dart';
+import 'services/playlist_service.dart';
 import 'theme/app_theme.dart';
 import 'widgets/player_bar.dart';
 
@@ -64,15 +65,15 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   late final ApiService _api;
   late final PlayerService _player;
+  final _playlistService = PlaylistService();
 
   int _currentIndex = 0;
   bool _railExtended = false;
   List<Song> _library = [];
   bool _libraryLoaded = false;
   List<Playlist> _playlists = [];
-  // Playlist abierta en el detalle (sin push de ruta, vive dentro del shell)
   Playlist? _detailPlaylist;
-  Map<String, double> _downloadProgress = {}; // videoId -> 0.0..1.0
+  Map<String, double> _downloadProgress = {};
 
   @override
   void initState() {
@@ -80,6 +81,12 @@ class _HomeShellState extends State<HomeShell> {
     _api = ApiService();
     _player = PlayerService(api: _api);
     _loadLibrary();
+    _loadPlaylists();
+  }
+
+  Future<void> _loadPlaylists() async {
+    final playlists = await _playlistService.load();
+    setState(() => _playlists = playlists);
   }
 
   Future<void> _loadLibrary() async {
@@ -196,11 +203,63 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   void _createPlaylist(Playlist p) {
-    setState(() => _playlists = [..._playlists, p]);
+    final updated = [..._playlists, p];
+    setState(() => _playlists = updated);
+    _playlistService.save(updated);
   }
 
   void _deletePlaylist(String id) {
-    setState(() => _playlists = _playlists.where((p) => p.id != id).toList());
+    final updated = _playlists.where((p) => p.id != id).toList();
+    setState(() => _playlists = updated);
+    _playlistService.save(updated);
+  }
+
+  void _addToPlaylist(Song song, Playlist playlist) {
+    final playlistId = playlist.id;
+    // Asegurarse de que la canción está en la biblioteca
+    if (!_library.any((s) => s.videoId == song.videoId)) {
+      _api
+          .addToLibrary(song)
+          .then((saved) {
+            setState(() {
+              if (!_library.any((s) => s.videoId == saved.videoId)) {
+                _library = [..._library, saved];
+              }
+            });
+          })
+          .catchError((_) {});
+    }
+    final updated =
+        _playlists.map((p) {
+          if (p.id != playlistId) return p;
+          if (p.videoIds.contains(song.videoId)) return p;
+          return p.copyWith(videoIds: [...p.videoIds, song.videoId]);
+        }).toList();
+    setState(() {
+      _playlists = updated;
+      if (_detailPlaylist?.id == playlistId) {
+        _detailPlaylist = updated.firstWhere((p) => p.id == playlistId);
+      }
+    });
+    _playlistService.save(updated);
+    _showSnack('"${song.title}" añadida a ${playlist.name}');
+  }
+
+  void _removeFromPlaylist(String videoId, String playlistId) {
+    final updated =
+        _playlists.map((p) {
+          if (p.id != playlistId) return p;
+          return p.copyWith(
+            videoIds: p.videoIds.where((id) => id != videoId).toList(),
+          );
+        }).toList();
+    setState(() {
+      _playlists = updated;
+      if (_detailPlaylist?.id == playlistId) {
+        _detailPlaylist = updated.firstWhere((p) => p.id == playlistId);
+      }
+    });
+    _playlistService.save(updated);
   }
 
   void _showSnack(String msg, {bool error = false}) {
@@ -230,7 +289,13 @@ class _HomeShellState extends State<HomeShell> {
     final appState = EspotifaiApp.of(context);
     final dark = appState.isDark;
     final screens = <Widget>[
-      SearchScreen(api: _api, player: _player, onAddToLibrary: _addToLibrary),
+      SearchScreen(
+        api: _api,
+        player: _player,
+        onAddToLibrary: _addToLibrary,
+        playlists: _playlists,
+        onAddToPlaylist: _addToPlaylist,
+      ),
       _libraryLoaded
           ? _detailPlaylist != null
               ? PlaylistDetailScreen(
@@ -238,9 +303,14 @@ class _HomeShellState extends State<HomeShell> {
                 allSongs: _library,
                 player: _player,
                 onRemoveSong: _removeFromLibrary,
+                onRemoveFromPlaylist:
+                    (videoId) =>
+                        _removeFromPlaylist(videoId, _detailPlaylist!.id),
                 onDownload: _downloadSong,
                 downloadProgress: _downloadProgress,
                 onBack: () => setState(() => _detailPlaylist = null),
+                playlists: _playlists,
+                onAddToPlaylist: _addToPlaylist,
               )
               : LibraryScreen(
                 player: _player,

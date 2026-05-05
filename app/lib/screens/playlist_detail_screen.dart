@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../models/playlist.dart';
 import '../models/song.dart';
@@ -9,8 +10,11 @@ class PlaylistDetailScreen extends StatefulWidget {
   final PlayerService player;
   final Map<String, double> downloadProgress;
   final void Function(String videoId) onRemoveSong;
+  final void Function(String videoId)? onRemoveFromPlaylist;
   final void Function(String videoId) onDownload;
   final VoidCallback onBack;
+  final List<Playlist> playlists;
+  final void Function(Song, Playlist) onAddToPlaylist;
 
   const PlaylistDetailScreen({
     super.key,
@@ -19,8 +23,11 @@ class PlaylistDetailScreen extends StatefulWidget {
     required this.player,
     required this.downloadProgress,
     required this.onRemoveSong,
+    this.onRemoveFromPlaylist,
     required this.onDownload,
     required this.onBack,
+    required this.playlists,
+    required this.onAddToPlaylist,
   });
 
   @override
@@ -275,10 +282,22 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                     downloadProgress: widget.downloadProgress[song.videoId],
                     onPlay: () => widget.player.playQueue(songs, startIndex: i),
                     onRemove: () => widget.onRemoveSong(song.videoId),
+                    onRemoveFromPlaylist:
+                        widget.playlist.isAuto
+                            ? null
+                            : () =>
+                                widget.onRemoveFromPlaylist?.call(song.videoId),
                     onDownload:
                         song.downloaded
                             ? null
                             : () => widget.onDownload(song.videoId),
+                    playlists:
+                        widget.playlists
+                            .where(
+                              (p) => !p.isAuto && p.id != widget.playlist.id,
+                            )
+                            .toList(),
+                    onAddToPlaylist: (s, p) => widget.onAddToPlaylist(s, p),
                   );
                 }, childCount: songs.length),
               ),
@@ -301,7 +320,10 @@ class _SongRow extends StatelessWidget {
   downloadProgress; // null = no descargando, 0..1 = progreso, 1.0 = done
   final VoidCallback onPlay;
   final VoidCallback onRemove;
+  final VoidCallback? onRemoveFromPlaylist;
   final VoidCallback? onDownload;
+  final List<Playlist> playlists;
+  final void Function(Song, Playlist) onAddToPlaylist;
 
   const _SongRow({
     required this.index,
@@ -314,7 +336,10 @@ class _SongRow extends StatelessWidget {
     this.downloadProgress,
     required this.onPlay,
     required this.onRemove,
+    this.onRemoveFromPlaylist,
     this.onDownload,
+    required this.playlists,
+    required this.onAddToPlaylist,
   });
 
   @override
@@ -355,12 +380,21 @@ class _SongRow extends StatelessWidget {
                 // Thumbnail
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
-                  child: Image.network(
-                    song.thumbnail,
+                  child: CachedNetworkImage(
+                    imageUrl: song.thumbnail,
                     width: 40,
                     height: 40,
                     fit: BoxFit.cover,
-                    errorBuilder:
+                    placeholder:
+                        (_, __) => Container(
+                          width: 40,
+                          height: 40,
+                          color:
+                              dark
+                                  ? const Color(0xFF333333)
+                                  : const Color(0xFFDDDDDD),
+                        ),
+                    errorWidget:
                         (_, __, ___) => Container(
                           width: 40,
                           height: 40,
@@ -443,6 +477,7 @@ class _SongRow extends StatelessWidget {
                   ),
                   onSelected: (v) {
                     if (v == 'remove') onRemove();
+                    if (v == 'remove_playlist') onRemoveFromPlaylist?.call();
                     if (v == 'download') onDownload?.call();
                   },
                   itemBuilder:
@@ -458,6 +493,17 @@ class _SongRow extends StatelessWidget {
                               ],
                             ),
                           ),
+                        if (onRemoveFromPlaylist != null)
+                          const PopupMenuItem(
+                            value: 'remove_playlist',
+                            child: Row(
+                              children: [
+                                Icon(Icons.playlist_remove_rounded, size: 18),
+                                SizedBox(width: 8),
+                                Text('Quitar de la playlist'),
+                              ],
+                            ),
+                          ),
                         const PopupMenuItem(
                           value: 'remove',
                           child: Row(
@@ -470,6 +516,33 @@ class _SongRow extends StatelessWidget {
                         ),
                       ],
                 ),
+                // Submenú agregar a otra playlist
+                if (playlists.isNotEmpty)
+                  PopupMenuButton<Playlist>(
+                    icon: Icon(
+                      Icons.playlist_add_rounded,
+                      size: 18,
+                      color: subColor,
+                    ),
+                    tooltip: 'Agregar a playlist',
+                    itemBuilder:
+                        (_) =>
+                            playlists
+                                .map(
+                                  (p) => PopupMenuItem<Playlist>(
+                                    value: p,
+                                    child: Row(
+                                      children: [
+                                        Icon(p.icon, size: 16, color: p.color),
+                                        const SizedBox(width: 8),
+                                        Text(p.name),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                    onSelected: (p) => onAddToPlaylist(song, p),
+                  ),
               ],
             ),
           ),

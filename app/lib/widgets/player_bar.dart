@@ -1,4 +1,6 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../screens/now_playing_screen.dart';
 import '../services/player_service.dart';
 
 class PlayerBar extends StatefulWidget {
@@ -115,74 +117,102 @@ class _PlayerBarState extends State<PlayerBar> {
             height: 56,
             child: Row(
               children: [
-                // Left: art + title + artist
+                // Left: art + title + artist (toca para abrir NowPlaying)
                 Expanded(
                   flex: 3,
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 12),
-                      if (song != null)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: Image.network(
-                            song.thumbnail,
-                            width: 40,
-                            height: 40,
-                            fit: BoxFit.cover,
-                            errorBuilder:
-                                (_, __, ___) => Container(
-                                  width: 40,
-                                  height: 40,
-                                  color:
-                                      dark
-                                          ? const Color(0xFF333333)
-                                          : const Color(0xFFEEEEEE),
-                                  child: Icon(
-                                    Icons.music_note,
-                                    size: 18,
-                                    color: muted,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap:
+                        song == null
+                            ? null
+                            : () => showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              useSafeArea: false,
+                              backgroundColor: Colors.transparent,
+                              constraints: const BoxConstraints.expand(),
+                              builder:
+                                  (_) =>
+                                      NowPlayingScreen(player: widget.player),
+                            ),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 12),
+                        if (song != null)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: CachedNetworkImage(
+                              imageUrl: song.thumbnail,
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.cover,
+                              placeholder:
+                                  (_, __) => Container(
+                                    width: 40,
+                                    height: 40,
+                                    color:
+                                        dark
+                                            ? const Color(0xFF333333)
+                                            : const Color(0xFFEEEEEE),
                                   ),
-                                ),
+                              errorWidget:
+                                  (_, __, ___) => Container(
+                                    width: 40,
+                                    height: 40,
+                                    color:
+                                        dark
+                                            ? const Color(0xFF333333)
+                                            : const Color(0xFFEEEEEE),
+                                    child: Icon(
+                                      Icons.music_note,
+                                      size: 18,
+                                      color: muted,
+                                    ),
+                                  ),
+                            ),
                           ),
-                        ),
-                      const SizedBox(width: 10),
-                      if (song != null)
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                song.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: dark ? Colors.white : Colors.black87,
-                                ),
-                              ),
-                              if (song.artist.isNotEmpty)
+                        const SizedBox(width: 10),
+                        if (song != null)
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
                                 Text(
-                                  song.artist,
+                                  song.title,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(fontSize: 11, color: muted),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: dark ? Colors.white : Colors.black87,
+                                  ),
                                 ),
-                            ],
+                                if (song.artist.isNotEmpty)
+                                  Text(
+                                    song.artist,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: muted,
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
-                        ),
-                      if (song != null)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 4),
-                          child: Icon(
-                            Icons.check_circle_rounded,
-                            size: 14,
-                            color: green,
+                        if (song != null && song.downloaded)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 4),
+                            child: Icon(
+                              Icons.check_circle_rounded,
+                              size: 14,
+                              color: green,
+                            ),
                           ),
-                        ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ), // GestureDetector
                 ),
 
                 // Center: playback controls

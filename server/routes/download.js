@@ -65,15 +65,8 @@ router.post('/', async (req, res) => {
   // Descarga en segundo plano
   const ytUrl = `https://www.youtube.com/watch?v=${safeId}`;
 
-  // Args base: remote-components resuelve el JS challenge de YouTube
-  const baseArgs = [
-    ytUrl,
-    '--remote-components',
-    'ejs:github',
-    '--no-check-formats',
-    '-o',
-    outPath,
-  ];
+  // Args base
+  const baseArgs = [ytUrl, '--no-check-formats', '--no-check-certificates', '-o', outPath];
 
   const args =
     format === 'mp4'

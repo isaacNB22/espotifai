@@ -73,7 +73,7 @@ router.get('/:videoId', (req, res) => {
     }
   }
 
-  // ── 2. No descargado: yt-dlp → ffmpeg → mp3 stream ──
+  // ── 2. No descargado: yt-dlp → stream directo ──
   const ytUrl = `https://www.youtube.com/watch?v=${safeId}`;
 
   res.setHeader('Content-Type', 'audio/mpeg');
@@ -81,61 +81,77 @@ router.get('/:videoId', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('X-Stream-Source', 'yt-dlp-proxy');
 
-  // yt-dlp descarga el mejor audio y lo escribe a stdout
+  // yt-dlp extrae el audio y lo convierte a mp3 (usa ffmpeg integrado si disponible,
+  // o entrega el formato nativo m4a/webm si no lo hay)
   const ytProc = spawn(ytDlpBin, [
     '--no-playlist',
     '-f',
-    'bestaudio[ext=m4a]/bestaudio/best',
+    'bestaudio[ext=webm]/bestaudio[ext=m4a]/bestaudio/best',
     '--no-check-formats',
-    // Mitigar rate limiting de YouTube
     '--extractor-args',
-    'youtube:player_client=ios,web',
-    '--sleep-requests',
-    '1',
+    'youtube:player_client=android,mweb',
     '--no-check-certificates',
+    '--retries',
+    '3',
+    '--add-header',
+    'Accept-Language:en-US,en;q=0.9',
     '-o',
     '-',
     '--quiet',
     ytUrl,
   ]);
 
-  // ffmpeg lo convierte a mp3 en tiempo real
-  const ffProc = spawn('ffmpeg', [
-    '-hide_banner',
-    '-loglevel',
-    'error',
-    '-i',
-    'pipe:0',
-    '-vn',
-    '-acodec',
-    'libmp3lame',
-    '-ab',
-    '128k',
-    '-f',
-    'mp3',
-    'pipe:1',
-  ]);
-
-  ytProc.stdout.pipe(ffProc.stdin);
-  ffProc.stdout.pipe(res);
-
-  // Evitar que EPIPE (cliente desconectado) tire el proceso
-  res.socket?.on('error', () => cleanup());
-  ffProc.stdin.on('error', () => {}); // yt-dlp cerró antes que ffmpeg
-  ffProc.stdout.on('error', () => {}); // cliente cerró la conexión
+  // Intentar pasar por ffmpeg para normalizar a mp3; si no existe, stream raw
+  let ffProc;
+  try {
+    ffProc = spawn('ffmpeg', [
+      '-hide_banner',
+      '-loglevel',
+      'error',
+      '-i',
+      'pipe:0',
+      '-vn',
+      '-acodec',
+      'libmp3lame',
+      '-ab',
+      '128k',
+      '-f',
+      'mp3',
+      'pipe:1',
+    ]);
+    ytProc.stdout.pipe(ffProc.stdin);
+    ffProc.stdout.pipe(res);
+    ffProc.stdin.on('error', () => {});
+    ffProc.stdout.on('error', () => {});
+    ffProc.stderr.on('data', (d) => {
+      const msg = d.toString().trim();
+      if (msg) console.warn('[stream/ffmpeg]', msg);
+    });
+    ffProc.on('error', (err) => {
+      // ffmpeg no disponible: fallback a raw
+      console.warn('[stream] ffmpeg no disponible, enviando audio raw:', err.message);
+      if (!ffProc.killed) ffProc.kill('SIGTERM');
+      if (!res.headersSent) {
+        res.setHeader('Content-Type', 'audio/mp4');
+        ytProc.stdout.pipe(res);
+      }
+    });
+    ffProc.on('close', () => {
+      if (!res.writableEnded) res.end();
+    });
+  } catch (_) {
+    // spawn mismo falló: stream raw
+    ytProc.stdout.pipe(res);
+  }
 
   ytProc.stderr.on('data', (d) => {
     const msg = d.toString().trim();
     if (msg) console.warn('[stream/yt-dlp]', msg);
   });
-  ffProc.stderr.on('data', (d) => {
-    const msg = d.toString().trim();
-    if (msg) console.warn('[stream/ffmpeg]', msg);
-  });
 
   const cleanup = () => {
     if (!ytProc.killed) ytProc.kill('SIGTERM');
-    if (!ffProc.killed) ffProc.kill('SIGTERM');
+    if (ffProc && !ffProc.killed) ffProc.kill('SIGTERM');
   };
 
   ytProc.on('error', (err) => {
@@ -143,15 +159,6 @@ router.get('/:videoId', (req, res) => {
     cleanup();
     if (!res.headersSent) res.status(500).end();
     else res.destroy();
-  });
-  ffProc.on('error', (err) => {
-    console.error('[stream/ffmpeg] spawn error:', err.message);
-    cleanup();
-    if (!res.headersSent) res.status(500).end();
-    else res.destroy();
-  });
-  ffProc.on('close', () => {
-    if (!res.writableEnded) res.end();
   });
 
   req.on('close', cleanup);

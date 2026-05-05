@@ -38,6 +38,10 @@ dependencies:
   media_kit: ^1.1.11
   media_kit_libs_windows_audio: ^1.0.1
   media_kit_libs_android_audio: ^1.0.1
+  # Persistencia local
+  shared_preferences: ^2.3.2
+  # Imágenes con caché
+  cached_network_image: ^3.4.1
 
 dev_dependencies:
   flutter_test:
