@@ -82,6 +82,7 @@ class PlayerService {
   }
 
   int _loadId = 0;
+  DateTime _lastOpen = DateTime(0); // timestamp de la última llamada a open()
 
   final List<void Function()> _listeners = [];
   final List<StreamSubscription> _subs = [];
@@ -123,12 +124,21 @@ class PlayerService {
 
     _subs.add(
       _player.stream.completed.listen((c) {
-        if (_usingA && c) _onCompleted();
+        if (_usingA && c) {
+          // Ignorar completed si fue emitido dentro de 1.5s de un open()
+          if (DateTime.now().difference(_lastOpen).inMilliseconds < 1500)
+            return;
+          _onCompleted();
+        }
       }),
     );
     _subs.add(
       _playerB.stream.completed.listen((c) {
-        if (!_usingA && c) _onCompleted();
+        if (!_usingA && c) {
+          if (DateTime.now().difference(_lastOpen).inMilliseconds < 1500)
+            return;
+          _onCompleted();
+        }
       }),
     );
 
@@ -148,6 +158,9 @@ class PlayerService {
   }
 
   void _onCompleted() {
+    // Ignorar el evento "completed" que media_kit emite al reemplazar el medio
+    // durante una carga nueva — evita que se salte a la siguiente canción.
+    if (status == PlayerStatus.loading) return;
     if (repeat) {
       _active.seek(Duration.zero);
       _active.play();
@@ -183,6 +196,7 @@ class PlayerService {
     final url = _api.streamUrl(nextSong.videoId);
 
     // Pre-cargar en standby
+    _lastOpen = DateTime.now();
     await _standby.open(Media(url), play: true);
     await _standby.setVolume(0);
     await _standby.setRate(speed);
@@ -338,6 +352,7 @@ class PlayerService {
     _notify();
     try {
       final url = _api.streamUrl(song.videoId);
+      _lastOpen = DateTime.now();
       await _active.open(Media(url), play: true);
       if (myLoadId != _loadId) return;
       await _active.setRate(speed);

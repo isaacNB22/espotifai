@@ -2,10 +2,11 @@
 import 'package:media_kit/media_kit.dart' hide Playlist;
 import 'models/playlist.dart';
 import 'models/song.dart';
+import 'screens/home_screen.dart';
 import 'screens/import_screen.dart';
 import 'screens/library_screen.dart';
 import 'screens/playlist_detail_screen.dart';
-import 'screens/search_screen.dart';
+
 import 'screens/stats_screen.dart';
 import 'services/api_service.dart';
 import 'services/player_service.dart';
@@ -289,12 +290,19 @@ class _HomeShellState extends State<HomeShell> {
     final appState = EspotifaiApp.of(context);
     final dark = appState.isDark;
     final screens = <Widget>[
-      SearchScreen(
+      HomeScreen(
         api: _api,
         player: _player,
-        onAddToLibrary: _addToLibrary,
+        library: _library,
         playlists: _playlists,
+        onAddToLibrary: _addToLibrary,
         onAddToPlaylist: _addToPlaylist,
+        onOpenPlaylist: (p) {
+          setState(() {
+            _detailPlaylist = p;
+            _currentIndex = 1; // ir a Biblioteca
+          });
+        },
       ),
       _libraryLoaded
           ? _detailPlaylist != null
@@ -330,8 +338,8 @@ class _HomeShellState extends State<HomeShell> {
 
     const destinations = [
       NavigationRailDestination(
-        icon: Icon(Icons.search_rounded),
-        label: Text('Buscar'),
+        icon: Icon(Icons.home_rounded),
+        label: Text('Inicio'),
       ),
       NavigationRailDestination(
         icon: Icon(Icons.library_music_rounded),

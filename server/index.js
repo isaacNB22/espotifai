@@ -20,6 +20,8 @@ import searchRouter from './routes/search.js';
 import libraryRouter from './routes/library.js';
 import downloadRouter from './routes/download.js';
 import streamRouter from './routes/stream.js';
+import lastfmRouter from './routes/lastfm.js';
+import deezerRouter from './routes/deezer.js';
 import { getQuotaStatus } from './quota.js';
 import { getLibrary } from './db.js';
 
@@ -56,6 +58,8 @@ app.use('/api/search', searchRouter);
 app.use('/api/library', libraryRouter);
 app.use('/api/download', downloadRouter);
 app.use('/api/stream', streamRouter);
+app.use('/api/lastfm', lastfmRouter);
+app.use('/api/deezer', deezerRouter);
 
 // Health check
 app.get('/api/ping', (_req, res) => res.json({ ok: true, version: '1.0.0' }));

@@ -16,6 +16,7 @@ class SongCard extends StatelessWidget {
   final void Function(Song, Playlist)? onAddToPlaylist;
   final VoidCallback? onAddToQueue;
   final VoidCallback? onPlayAsNext;
+  final Widget? trailing;
 
   const SongCard({
     super.key,
@@ -31,6 +32,7 @@ class SongCard extends StatelessWidget {
     this.onAddToPlaylist,
     this.onAddToQueue,
     this.onPlayAsNext,
+    this.trailing,
   });
 
   @override
@@ -236,6 +238,7 @@ class SongCard extends StatelessWidget {
               color: const Color(0xFF1DB954),
               size: 32,
             ),
+            if (trailing != null) trailing!,
           ],
         ),
       ),
