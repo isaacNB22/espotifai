@@ -47,5 +47,5 @@ app.*.map.json
 # icon app
 /android/app/src/main/res/mipmap-*
 /android/app/src/main/res/drawable-*
-# app ios runner
-/ios/Runner/
+# app ios runner — generado, pero necesario para compilar
+# /ios/Runner/  <- no excluir

@@ -22,6 +22,6 @@ Clon personal de Spotify conectado a YouTube. App multiplataforma Flutter (Windo
 
     cd app
     flutter pub get
-    flutter run -d windows   # Windows (recomendado, requiere Windows)
-    flutter run -d android    # Android (requiere emulador o dispositivo)
-    flutter run -d ios      # iOS
+    flutter run -d windows
+    flutter run -d android
+    flutter run -d ios

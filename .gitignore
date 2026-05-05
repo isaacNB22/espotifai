@@ -17,9 +17,22 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
-# Flutter — plataformas no usadas (solo Windows)
-app/ios/
-app/android/
+# Flutter — plataformas no usadas en desarrollo Windows
+# (se incluyen para poder compilar en otros entornos)
+# app/ios/   <- NO excluir, necesario para compilar en Mac
+# app/android/ <- NO excluir, necesario para compilar en Android
+
+# Flutter — archivos generados de Android (se regeneran con gradle)
+app/android/.gradle/
+app/android/app/build/
+app/android/build/
+app/android/local.properties
+
+# Flutter — archivos generados de iOS (se regeneran con pod install)
+app/ios/Pods/
+app/ios/.symlinks/
+app/ios/Flutter/Flutter.framework
+app/ios/Flutter/Flutter.podspec
 
 # Flutter — archivos generados de Windows (se regeneran con flutter pub get)
 app/windows/flutter/generated_plugin_registrant.cc
