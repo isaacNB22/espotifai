@@ -14,7 +14,9 @@ Clon personal de Spotify conectado a YouTube. App multiplataforma Flutter (Windo
 
 ### Backend
 
-    cd server && npm install && node index.js
+    cd server
+    npm install
+    node index.js
 
 ### App Flutter
 
@@ -22,6 +24,4 @@ Clon personal de Spotify conectado a YouTube. App multiplataforma Flutter (Windo
     flutter pub get
     flutter run -d windows   # Windows (recomendado, requiere Windows)
     flutter run -d android    # Android (requiere emulador o dispositivo)
-    # flutter run -d ios      # iOS — requiere Mac con Xcode
-
-> Cambia kBaseUrl en app/lib/services/api_service.dart para apuntar a tu servidor.
+    flutter run -d ios      # iOS
