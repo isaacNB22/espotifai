@@ -182,8 +182,24 @@ class ApiService {
 
   // ─── Stream URL ──────────────────────────────────────────────────────────
 
-  /// Devuelve la URL de streaming para un videoId.
+  /// Devuelve la URL de streaming local (para archivos descargados o fallback).
   String streamUrl(String videoId) => '$kBaseUrl/api/stream/$videoId';
+
+  /// Resuelve la URL directa de audio (puede ser CDN de YouTube o local).
+  /// media_kit la abre directamente sin pasar por el proxy del servidor.
+  Future<String> resolveStreamUrl(String videoId) async {
+    final uri = Uri.parse('$kBaseUrl/api/stream/$videoId/resolve');
+    try {
+      final res = await _client.get(uri).timeout(const Duration(seconds: 20));
+      if (res.statusCode == 200) {
+        final json = jsonDecode(res.body) as Map<String, dynamic>;
+        final url = json['url'] as String?;
+        if (url != null && url.isNotEmpty) return url;
+      }
+    } catch (_) {}
+    // Fallback: URL local del servidor
+    return streamUrl(videoId);
+  }
 
   // ─── Last.fm ─────────────────────────────────────────────────────────────
 

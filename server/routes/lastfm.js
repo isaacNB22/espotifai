@@ -34,19 +34,42 @@ function lfm(key) {
  * Busca en YouTube el audio de "artist - track".
  * Intenta primero yt-dlp (gratis, sin quota), luego YouTube Data API como fallback.
  */
+const BLOCKED_TITLE = /official\s*(?:music\s*)?video|video\s*(?:musical\s*)?oficial/i;
+
 async function findYouTubeAudio(artist, track, ytKey) {
   // 1. yt-dlp — sin quota, más fiable
   try {
-    const query = `${artist} ${track}`;
+    const query = `${artist} ${track} audio`;
     const { stdout } = await execFileAsync(
       'yt-dlp',
-      [`ytsearch1:${query}`, '--print', 'id', '--no-download', '--no-playlist', '--quiet'],
+      [
+        `ytsearch5:${query}`,
+        '--print',
+        '%(id)s\t%(title)s',
+        '--no-download',
+        '--no-playlist',
+        '--quiet',
+      ],
       { timeout: 10000 }
     );
-    const videoId = stdout.trim();
-    if (videoId) {
-      const thumb = `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
-      return { videoId, channelTitle: '', thumbnail: thumb };
+    const lines = stdout.trim().split('\n').filter(Boolean);
+    for (const line of lines) {
+      const [videoId, ...titleParts] = line.split('\t');
+      const title = titleParts.join('\t');
+      if (videoId && !BLOCKED_TITLE.test(title)) {
+        const thumb = `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
+        return { videoId, channelTitle: '', thumbnail: thumb };
+      }
+    }
+    // Si todos bloqueados, usar el primero
+    if (lines.length > 0) {
+      const videoId = lines[0].split('\t')[0];
+      if (videoId)
+        return {
+          videoId,
+          channelTitle: '',
+          thumbnail: `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
+        };
     }
   } catch {
     // fallback a YouTube API
@@ -55,11 +78,11 @@ async function findYouTubeAudio(artist, track, ytKey) {
   // 2. YouTube Data API v3 (fallback)
   if (!ytKey || ytKey === 'AQUI_VA_TU_API_KEY') return null;
   try {
-    const q = `${artist} ${track}`;
+    const q = `${artist} ${track} audio`;
     const url = new URL('https://www.googleapis.com/youtube/v3/search');
     url.searchParams.set('part', 'snippet');
     url.searchParams.set('q', q);
-    url.searchParams.set('maxResults', '3');
+    url.searchParams.set('maxResults', '5');
     url.searchParams.set('type', 'video');
     url.searchParams.set('key', ytKey);
 
@@ -67,7 +90,7 @@ async function findYouTubeAudio(artist, track, ytKey) {
     if (!resp.ok) return null;
     const data = await resp.json();
     const items = data.items ?? [];
-    const chosen = items[0];
+    const chosen = items.find((i) => !BLOCKED_TITLE.test(i.snippet.title)) ?? items[0];
     if (!chosen) return null;
 
     return {

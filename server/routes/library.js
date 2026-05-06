@@ -24,10 +24,22 @@ router.post('/import', async (req, res) => {
     const ytDlp = new YTDlpWrap();
 
     // Obtiene metadata (puede ser playlist o video individual)
-    const raw = await ytDlp.getVideoInfo(url);
+    let raw;
+    try {
+      raw = await ytDlp.getVideoInfo(url);
+    } catch (e) {
+      throw new Error('yt-dlp no pudo obtener info: ' + e.message);
+    }
 
     // Si es playlist devuelve entries[], si es video devuelve el objeto directo
-    const entries = raw.entries ?? [raw];
+    let entries;
+    if (raw && Array.isArray(raw.entries)) {
+      entries = raw.entries;
+    } else if (raw && raw.id) {
+      entries = [raw];
+    } else {
+      throw new Error('Respuesta inesperada de yt-dlp (posible rate limit de YouTube)');
+    }
 
     const added = [];
     for (const entry of entries) {

@@ -77,14 +77,20 @@ router.get('/', async (req, res) => {
     }
 
     const data = await resp.json();
-    const results = (data.items ?? []).map((item) => ({
-      videoId: item.id.videoId,
-      title: item.snippet.title,
-      author: item.snippet.channelTitle,
-      thumbnail: item.snippet.thumbnails.medium?.url ?? item.snippet.thumbnails.default?.url ?? '',
-      publishedAt: item.snippet.publishedAt,
-      description: item.snippet.description,
-    }));
+    const BLOCKED_TITLE =
+      /official\s*video|video\s*oficial|official\s*music\s*video|video\s*musical\s*oficial/i;
+
+    const results = (data.items ?? [])
+      .filter((item) => !BLOCKED_TITLE.test(item.snippet.title))
+      .map((item) => ({
+        videoId: item.id.videoId,
+        title: item.snippet.title,
+        author: item.snippet.channelTitle,
+        thumbnail:
+          item.snippet.thumbnails.medium?.url ?? item.snippet.thumbnails.default?.url ?? '',
+        publishedAt: item.snippet.publishedAt,
+        description: item.snippet.description,
+      }));
 
     const quota = recordSearch();
     res.json({ results, quota });
